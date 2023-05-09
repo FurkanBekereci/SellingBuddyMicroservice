@@ -1,0 +1,41 @@
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using WebApp;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
+using WebApp.Utils;
+using WebApp.Application.Services.Interfaces;
+using WebApp.Application.Services.Implementations;
+using WebApp.Infrastructure;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+
+//builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddBlazoredLocalStorage();
+
+builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
+
+builder.Services.AddScoped<AuthTokenHandler>();
+
+builder.Services.AddSingleton<AppStateManager>();
+
+builder.Services.AddScoped(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    return clientFactory.CreateClient("ApiGatewayHttpClient");
+});
+
+builder.Services.AddHttpClient("ApiGatewayHttpClient",httpClient =>
+{
+    httpClient.BaseAddress = new Uri("http://localhost:5000/");
+    
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddTransient<IIdentityService, IdentityService>();
+builder.Services.AddTransient<ICatalogService, CatalogService>();
+builder.Services.AddTransient<IBasketService, BasketService>();
+builder.Services.AddTransient<IOrderService, OrderService>();
+
+await builder.Build().RunAsync();

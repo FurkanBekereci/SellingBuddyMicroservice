@@ -1,0 +1,101 @@
+﻿@page "/basket"
+
+<div class="card">
+    <div class="row">
+        <div class="col-md-8 cart">
+            <div class="title">
+                <div class="row">
+                    <div class="col">
+                        <h4><b>Shopping Cart</b></h4>
+                    </div>
+                    <div class="col align-self-center text-right text-muted">@basket.Items.Count items</div>
+                </div>
+            </div>
+
+            @if(basket.Items.Any()){
+
+                foreach (var basketItem in basket.Items)
+                {
+                    <div class="row border-top border-bottom">
+                        <div class="row main align-item-center">
+                            @{ string pictureUrl = $"http://localhost:5004/{basketItem.PictureUrl}"; }
+                            <div class="col-2">
+                                <img class="img-fluid" src="@pictureUrl">
+                            </div>
+                            <div class="col">
+                                <div class="row text-muted">@basketItem.ProductName</div>
+                            </div>
+                            <div class="col">
+                                <a href="#" class="border">@basketItem.Quantity</a>
+                            </div>
+                             <div class="col">
+                                $ @basketItem.UnitPrice.ToString("N2")
+                                <span @onclick="@(async()=> await RemoveItemFromList(basketItem))">
+                                    @*&#10005;*@
+                                    <button type="button" class="close" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+
+            <div class="back-to-shop">
+                <a href="catalog">&larr;</a>
+                <span class="text-muted">Back to shop</span>
+            </div>
+
+        </div>
+
+        <div class="col-md-4 summary">
+            <div>
+                <h5><b>Summary</b></h5>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col" style="padding-left:0;">ITEMS @basket.Items.Count</div>
+                <div class="col text-right">$ @basket.Items.Sum(i => i.UnitPrice * i.Quantity)</div>
+            </div>
+            <div class="row" style="border-top: 1px solid rgba(0,0,0,.1); padding: 2vh 0;">
+                <div class="col">TOTAL PRICE</div>
+                <div class="col text-right">$ @basket.Items.Sum(i => i.UnitPrice * i.Quantity)</div>
+            </div>
+            <button class="btn" @onclick="@(()=>Checkout())">CHECKOUT</button>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    Basket basket = new Basket();
+
+    [Inject]
+    IBasketService _basketService { get; set; }
+
+    [Inject]
+    AppStateManager AppState { get; set; }
+
+    [Inject]
+    NavigationManager _navigationManager { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        basket = await _basketService.GetBasket();
+    }
+
+    void Checkout(){
+        _navigationManager.NavigateTo("/create-order");
+        Console.WriteLine("navigating to create order");
+    }
+
+    async Task RemoveItemFromList(BasketItem item){
+        
+        basket.Items.Remove(item);
+        basket = await _basketService.UpdateBasket(basket);
+
+        AppState.UpdateCart(this);
+    }
+
+}

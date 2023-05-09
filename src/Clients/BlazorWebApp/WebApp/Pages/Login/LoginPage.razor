@@ -1,0 +1,52 @@
+﻿@page "/login"
+
+@using System.Web;
+
+
+<div class="container-fluid h-100">
+    <div class="row justify-content-center align-items-center h-100">
+        <div class="col col-sm-6 col-md-6 col-lg-4 col-xl-3">
+            <EditForm Model="@userLoginRequest" OnValidSubmit="LoginProcess">
+                <DataAnnotationsValidator/>
+
+                <div class="form-group">
+                    <input @bind-value="userLoginRequest.UserName" class="form-control form-control-lg" type="text" placeholder="User Name" />
+                </div>
+
+                <div class="form-group">
+                    <input @bind-value="userLoginRequest.Password" class="form-control form-control-lg" type="password" placeholder="Password" />
+                </div>
+
+                <div class="form-group">
+                    <button class="btn btn-info btn-block">Login</button>
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    public UserLoginRequest userLoginRequest = new UserLoginRequest("", "");
+
+    [Inject]
+    IIdentityService _identityService { get; set; }
+
+    [Inject]
+    NavigationManager _navigationManager { get; set; }
+
+    private async Task LoginProcess(){
+
+        var res = await _identityService.Login(userLoginRequest);
+
+        if(res){
+            var collection = HttpUtility.ParseQueryString(new Uri(_navigationManager.Uri).Query);
+
+            string returnUrl = collection.Get("returnUrl") ?? "/";
+
+            _navigationManager.NavigateTo(returnUrl);
+        }
+    }
+
+}

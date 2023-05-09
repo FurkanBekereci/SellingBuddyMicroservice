@@ -1,0 +1,86 @@
+﻿
+
+@if(_isLoggedIn){
+
+    <a href="basket" class="ml-md-auto">@_identityService.GetUserName() - Basket (@_basketItemCount)</a>
+    <a class="ml-md-auto" @onclick="GoLogoutPage">Logout</a>
+}
+else{
+    <a class="ml-md-auto" @onclick="GoLoginPage">Login</a>
+}
+
+
+@code {
+
+
+    private bool _isLoggedIn;
+    private int _basketItemCount = 0;
+
+    [Inject]
+    IIdentityService _identityService { get; set; }
+
+    [Inject]
+    IBasketService _basketService { get; set; }
+
+    [Inject]
+    NavigationManager _navigationManager { get; set; }
+
+    [Inject]
+    AppStateManager appState { get; set; } 
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if(firstRender){
+            appState.StateChanged += async (source, property) => await AppState_StateChanged(source, property);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CalculateItemCount();
+    }
+
+    private async Task<int> CalculateItemCount(){
+        
+        _isLoggedIn = _identityService.IsLoggedIn;
+
+        if(!_isLoggedIn) return 0;
+
+        var basket = await _basketService.GetBasket();
+        var count = basket.Items == null ? 0 : basket.Items.Sum(i => i.Quantity);
+
+        _basketItemCount = count;
+
+        return count;
+
+    }
+
+    private async Task AppState_StateChanged(ComponentBase source, string property){
+
+        if (source == this) return;
+
+        switch (property)
+        {
+            case "increase":
+                _basketItemCount++;
+                break;
+            case "updatebasket":
+            case "login":
+                await CalculateItemCount();
+                break;
+            default: break;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GoLoginPage()
+    {
+        _navigationManager.NavigateTo($"login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", false);
+    }
+
+    private void GoLogoutPage()
+    {
+        _navigationManager.NavigateTo($"logout?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", false);
+    }
+}

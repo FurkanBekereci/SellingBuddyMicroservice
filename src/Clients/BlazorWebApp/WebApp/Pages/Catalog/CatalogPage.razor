@@ -1,0 +1,49 @@
+﻿@page "/catalog"
+@using WebApp.Components.Catalog.ProductView
+
+<div class="row">
+    @if(model.Items != null && model.Items.Any()){
+        foreach (var catalogItem in model.Items)
+        {
+            <ProductView CatalogItem="catalogItem" OnClick="()=>AddToCart(catalogItem)" />
+        }
+    }
+</div>
+
+
+@code {
+
+    [Inject]
+    ICatalogService _catalogService { get; set; }
+
+    [Inject]
+    IIdentityService _identityService { get; set; }
+
+    [Inject]
+    IBasketService _basketService { get; set; }
+
+    [Inject]
+    NavigationManager _navigationManager { get; set; }
+    
+    [Inject]
+    AppStateManager appState { get; set; }
+
+    PaginatedItemsViewModel<CatalogItem> model = new PaginatedItemsViewModel<CatalogItem>();
+
+    public async Task AddToCart(CatalogItem catalogItem){
+
+        if(!_identityService.IsLoggedIn){
+            _navigationManager.NavigateTo($"login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", true);
+            return;
+        }
+
+        await _basketService.AddItemToBasket(catalogItem.Id);
+        appState.UpdateCart(this);
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        model = await _catalogService.GetCatalogItems();
+        //base.OnInitializedAsync();
+    }
+}
